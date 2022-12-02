@@ -242,8 +242,9 @@ class Trainer:
                         if counter % self.val_freq == 0:
                             saver_ckpt.save(sess, os.path.join(self.checkpoint_dir, 'ckpt-m'), global_step=counter)
                             acc = []
-                            with open(self.val_log, 'w') as f:
+                            with open(self.val_log, 'a') as f:
                                 f.write('step: %d\n' % counter)
+                                f.flush()
                                 for k, v in self.val_data.items():
                                     imgs, imgs_f, issame = load_bin(v, self.image_size)
                                     embds = self.run_embds(sess, imgs)
@@ -251,6 +252,7 @@ class Trainer:
                                     embds = embds/np.linalg.norm(embds, axis=1, keepdims=True)+embds_f/np.linalg.norm(embds_f, axis=1, keepdims=True)
                                     tpr, fpr, acc_mean, acc_std, tar, tar_std, far = evaluate(embds, issame, far_target=1e-3, distance_metric=0)
                                     f.write('eval on %s: acc--%1.5f+-%1.5f, tar--%1.5f+-%1.5f@far=%1.5f\n' % (k, acc_mean, acc_std, tar, tar_std, far))
+                                    f.flush()
                                     acc.append(acc_mean)
                                 acc = np.mean(np.array(acc))
                                 if acc > best_acc:
