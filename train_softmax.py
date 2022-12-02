@@ -3,6 +3,7 @@ import time
 import pickle
 import argparse
 import numpy as np
+import sys
 
 import io
 import yaml
@@ -24,6 +25,7 @@ def parse_args():
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--config_path', type=str, help='path to config file', default='./configs/config_ms1m_100.yaml')
+    parser.add_argument('--dir_results', type=str, help='dir name to save training logs', default='')
 
     return parser.parse_args()
 
@@ -36,9 +38,14 @@ def inference(images, labels, is_training_dropout, is_training_bn, config):
 
 
 class Trainer:
-    def __init__(self, config):
+    def __init__(self, config, args):
         self.config = config
-        subdir = datetime.strftime(datetime.now(), '%Y%m%d-%H%M%S')
+        
+        if args.dir_results == '':
+            subdir = datetime.strftime(datetime.now(), '%Y%m%d-%H%M%S')   # original
+        else:
+            subdir = args.dir_results   # Bernardo
+        
         self.output_dir = os.path.join(config['output_dir'], subdir)
         self.model_dir = os.path.join(self.output_dir, 'models')
         self.log_dir = os.path.join(self.output_dir, 'log')
@@ -46,6 +53,7 @@ class Trainer:
         self.debug_dir = os.path.join(self.output_dir, 'debug')
         check_folders([self.output_dir, self.model_dir, self.log_dir, self.checkpoint_dir, self.debug_dir])
         self.val_log = os.path.join(self.output_dir, 'val_log.txt')
+        self.train_log = os.path.join(self.output_dir, 'train_log.txt')
 
         self.batch_size = config['batch_size']
         self.gpu_num = config['gpu_num']
@@ -83,17 +91,29 @@ class Trainer:
         self.train_images, self.train_labels = train_iterator.get_next()
         self.train_images = tf.identity(self.train_images, 'input_images')
         self.train_labels = tf.identity(self.train_labels, 'labels')
+
         if self.gpu_num <= 1:
             self.embds, self.logits, self.end_points = inference(self.train_images, self.train_labels, self.train_phase_dropout, self.train_phase_bn, self.config)
             self.embds = tf.identity(self.embds, 'embeddings')
-            self.inference_loss = slim.losses.sparse_softmax_cross_entropy(logits=self.logits, labels=self.train_labels)
+
+            # self.inference_loss = slim.losses.sparse_softmax_cross_entropy(logits=self.logits, labels=self.train_labels)  # original
+            self.inference_loss = tf.losses.sparse_softmax_cross_entropy(logits=self.logits, labels=self.train_labels)    # Bernardo (changed due warnings)
+            # self.inference_loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=self.logits, labels=self.train_labels))      # Bernardo (changed due warnings)
+            
             self.wd_loss = tf.add_n(tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES))
-            self.train_loss = self.inference_loss+self.wd_loss
-            pred = tf.arg_max(tf.nn.softmax(self.logits), dimension=-1, output_type=tf.int64)
+            
+            self.train_loss = self.inference_loss+self.wd_loss   # original
+            # self.train_loss = self.inference_loss                  # Bernardo
+            # self.train_loss = self.wd_loss                       # Bernardo
+            
+            # pred = tf.arg_max(tf.nn.softmax(self.logits), dimension=-1, output_type=tf.int64)  # original
+            pred = tf.argmax(tf.nn.softmax(self.logits), axis=-1, output_type=tf.int64)          # Bernardo (changed due warnings)
+
             self.train_acc = tf.reduce_mean(tf.cast(tf.equal(pred, self.train_labels), tf.float32))
             update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
             with tf.control_dependencies(update_ops):
-                self.train_op = tf.train.MomentumOptimizer(learning_rate=self.lr, momentum=self.config['momentum']).minimize(self.train_loss)
+                self.train_op = tf.train.MomentumOptimizer(learning_rate=self.lr, momentum=self.config['momentum']).minimize(self.train_loss)  # original
+                # self.train_op = tf.train.AdamOptimizer(learning_rate=self.lr).minimize(self.train_loss)
         else:
             self.embds = []
             self.logits = []
@@ -112,10 +132,17 @@ class Trainer:
                 with tf.device('/gpu:%d' % i):
                     with tf.variable_scope(tf.get_variable_scope(), reuse=(i > 0)):
                         embds, logits, end_points = inference(sub_train_images, sub_train_labels, self.train_phase_dropout, self.train_phase_bn, self.config)
-                        inference_loss = slim.losses.sparse_softmax_cross_entropy(logits=logits, labels=sub_train_labels)
+                        
+                        # inference_loss = slim.losses.sparse_softmax_cross_entropy(logits=logits, labels=sub_train_labels)  # original
+                        inference_loss = tf.losses.sparse_softmax_cross_entropy(logits=logits, labels=sub_train_labels)      # Bernardo (changed due warnings)
+                        # self.inference_loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=self.logits, labels=self.train_labels))      # Bernardo (changed due warnings)
+
                         wd_loss = tf.add_n(tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES))
                         train_loss = inference_loss+wd_loss
-                        pred.append(tf.arg_max(tf.nn.softmax(logits), dimension=-1, output_type=tf.int64))
+                        
+                        # pred.append(tf.arg_max(tf.nn.softmax(logits), dimension=-1, output_type=tf.int64))  # original
+                        pred.append(tf.argmax(tf.nn.softmax(logits), axis=-1, output_type=tf.int64))          # Bernardo (changed due warnings)
+                        
                         tower_grads.append(opt.compute_gradients(train_loss))
                         update_ops.append(tf.get_collection(tf.GraphKeys.UPDATE_OPS))
                         self.embds.append(embds)
@@ -189,46 +216,64 @@ class Trainer:
                 counter = self.global_step.eval(sess)
                 print('start step: %d' % counter)
             debug = True
-            for i in range(self.epoch_num):
-                for j in range(self.step_per_epoch):
-                    _, l, l_wd, l_inf, acc, s, _ = sess.run([self.train_op, self.train_loss, self.wd_loss, self.inference_loss, self.train_acc, self.train_summary, self.inc_op], feed_dict={self.train_phase_dropout: True, self.train_phase_bn: True})
-                    counter += 1
 
-                    # debug
-                    # self.save_image_label(train_img, train_lbl, counter)
-                    # if(debug):
-                    #     if(len(train_imgs) < 100):
-                    #         train_imgs.append(train_img[0])
-                    #     else:
-                    #         np.save(os.path.join(self.debug_dir, 'train_imgs.npy'), np.array(train_imgs))
-                    #         debug=False
-                    
-                    print("Epoch: [%2d/%2d] [%6d/%6d] time: %.2f, loss: %.3f (inference: %.3f, wd: %.3f), acc: %.3f" % (i, self.epoch_num, j, self.step_per_epoch, time.time() - start_time, l, l_inf, l_wd, acc))
-                    start_time = time.time()
-                    if counter % self.val_freq == 0:
-                        saver_ckpt.save(sess, os.path.join(self.checkpoint_dir, 'ckpt-m'), global_step=counter)
-                        acc = []
-                        with open(self.val_log, 'a') as f:
-                            f.write('step: %d\n' % counter)
-                            for k, v in self.val_data.items():
-                                imgs, imgs_f, issame = load_bin(v, self.image_size)
-                                embds = self.run_embds(sess, imgs)
-                                embds_f = self.run_embds(sess, imgs_f)
-                                embds = embds/np.linalg.norm(embds, axis=1, keepdims=True)+embds_f/np.linalg.norm(embds_f, axis=1, keepdims=True)
-                                tpr, fpr, acc_mean, acc_std, tar, tar_std, far = evaluate(embds, issame, far_target=1e-3, distance_metric=0)
-                                f.write('eval on %s: acc--%1.5f+-%1.5f, tar--%1.5f+-%1.5f@far=%1.5f\n' % (k, acc_mean, acc_std, tar, tar_std, far))
-                                acc.append(acc_mean)
-                            acc = np.mean(np.array(acc))
-                            if acc > best_acc:
-                                saver_best.save(sess, os.path.join(self.model_dir, 'best-m'), global_step=counter)
-                                best_acc = acc
+            with open(self.train_log, 'w') as f_train_log:   # Bernardo
+                for i in range(self.epoch_num):
+                    for j in range(self.step_per_epoch):
+                        _, l, l_wd, l_inf, acc, s, _ = sess.run([self.train_op, self.train_loss, self.wd_loss, self.inference_loss, self.train_acc, self.train_summary, self.inc_op], feed_dict={self.train_phase_dropout: True, self.train_phase_bn: True})
+                        counter += 1
 
-                        
+                        # debug
+                        # self.save_image_label(train_img, train_lbl, counter)
+                        # if(debug):
+                        #     if(len(train_imgs) < 100):
+                        #         train_imgs.append(train_img[0])
+                        #     else:
+                        #         np.save(os.path.join(self.debug_dir, 'train_imgs.npy'), np.array(train_imgs))
+                        #         debug=False
+
+                        output_train = 'Epoch: [%2d/%2d] [%6d/%6d] time: %.2f, loss: %.3f (inference: %.3f, wd: %.3f), acc: %.3f' % (i, self.epoch_num, j, self.step_per_epoch, time.time() - start_time, l, l_inf, l_wd, acc)
+                        print(output_train)
+                        if (i == 0 and j == 0) or (j == self.step_per_epoch-1):   # Bernardo
+                            f_train_log.write(output_train + '\n')
+                            f_train_log.flush()
+
+                        start_time = time.time()
+                        if counter % self.val_freq == 0:
+                            saver_ckpt.save(sess, os.path.join(self.checkpoint_dir, 'ckpt-m'), global_step=counter)
+                            acc = []
+                            with open(self.val_log, 'w') as f:
+                                f.write('step: %d\n' % counter)
+                                for k, v in self.val_data.items():
+                                    imgs, imgs_f, issame = load_bin(v, self.image_size)
+                                    embds = self.run_embds(sess, imgs)
+                                    embds_f = self.run_embds(sess, imgs_f)
+                                    embds = embds/np.linalg.norm(embds, axis=1, keepdims=True)+embds_f/np.linalg.norm(embds_f, axis=1, keepdims=True)
+                                    tpr, fpr, acc_mean, acc_std, tar, tar_std, far = evaluate(embds, issame, far_target=1e-3, distance_metric=0)
+                                    f.write('eval on %s: acc--%1.5f+-%1.5f, tar--%1.5f+-%1.5f@far=%1.5f\n' % (k, acc_mean, acc_std, tar, tar_std, far))
+                                    acc.append(acc_mean)
+                                acc = np.mean(np.array(acc))
+                                if acc > best_acc:
+                                    saver_best.save(sess, os.path.join(self.model_dir, 'best-m'), global_step=counter)
+                                    best_acc = acc
+                
+
+# original
+'''
 if __name__ == '__main__':
     args = parse_args()
     config = yaml.load(open(args.config_path))
     trainer = Trainer(config)
     trainer.train()
+'''
 
+# BERNARDO
+if __name__ == '__main__':
+    args = parse_args()
 
-                    
+    # Bernardo
+    stream = open(args.config_path)
+
+    config = yaml.load(stream, yaml.Loader)
+    trainer = Trainer(config, args)
+    trainer.train()

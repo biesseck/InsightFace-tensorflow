@@ -19,8 +19,8 @@ def get_logits(embds, labels, config, w_init=W_INIT, reuse=False, scope='logits'
 
 
 def calculate_arcface_logits(embds, weights, labels, class_num, s, m):
-    embds = tf.nn.l2_normalize(embds, axis=1, name='normed_embd')
-    weights = tf.nn.l2_normalize(weights, axis=0)
+    embds = tf.nn.l2_normalize(embds, dim=1, name='normed_embd')
+    weights = tf.nn.l2_normalize(weights, dim=0)
 
     cos_m = math.cos(m)
     sin_m = math.sin(m)
