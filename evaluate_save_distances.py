@@ -41,6 +41,15 @@ def load_bin(path, image_size):
         img = misc.imread(io.BytesIO(bin))
         img = misc.imresize(img, [image_size, image_size])
         # img = img[s:s+image_size, s:s+image_size, :]
+
+        # if cnt <= 2000:
+        #     path_save_imgs = '/home/bjgbiesseck/datasets/MS-Celeb-1M/faces_emore/images_[FOR_TEST]'
+        #     path_img = path_save_imgs + '/' + 'img'+str(cnt)+'.png'
+        #     misc.imsave(path_img, img)
+        #     # input('PAUSED')
+        # else:
+        #     sys.exit(0)
+
         img_f = np.fliplr(img)
         img = img/127.5-1.0
         img_f = img_f/127.5-1.0
@@ -92,18 +101,18 @@ if __name__ == '__main__':
 
     # Bernardo
     if not '--config_path' in sys.argv:
-        sys.argv += ['--config_path', './configs/config_ms1m_100_ms1mv2-1000subj.yaml']
-        # sys.argv += ['--config_path', './configs/config_ms1m_100_ms1mv2-2000subj.yaml']
+        # sys.argv += ['--config_path', './configs/config_ms1m_100_ms1mv2-1000subj.yaml']
+        sys.argv += ['--config_path', './configs/config_ms1m_100_ms1mv2-2000subj.yaml']
         # sys.argv += ['--config_path', './configs/config_ms1m_100_ms1mv2-5000subj.yaml']
 
     if not '--model_path' in sys.argv:
-        sys.argv += ['--model_path', './output/arcface-resnet-v2-m-50_dataset=ms1mv2_1000classes_eval=lfw-calfw-etc_epoch=30_lr=0.01/checkpoints/ckpt-m-30000']
-        # sys.argv += ['--model_path', './output/arcface-resnet-v2-m-50_dataset=ms1mv2_2000classes_eval=lfw-calfw-etc_epoch=30_lr=0.01/checkpoints/ckpt-m-30000']
+        # sys.argv += ['--model_path', './output/arcface-resnet-v2-m-50_dataset=ms1mv2_1000classes_eval=lfw-calfw-etc_epoch=30_lr=0.01/checkpoints/ckpt-m-30000']
+        sys.argv += ['--model_path', './output/arcface-resnet-v2-m-50_dataset=ms1mv2_2000classes_eval=lfw-calfw-etc_epoch=30_lr=0.01/checkpoints/ckpt-m-30000']
         # sys.argv += ['--model_path', './output/arcface-resnet-v2-m-50_dataset=ms1mv2_5000classes_eval=lfw-calfw-etc_epoch=30_lr=0.01/checkpoints/ckpt-m-30000']
 
     if not '--val_data' in sys.argv:
-        sys.argv += ['--val_data', '/home/bjgbiesseck/GitHub/BOVIFOCR_MICA_3Dreconstruction/demo/input/MS-Celeb-1M/faces_emore/lfw.bin']
-        # sys.argv += ['--val_data', '/home/bjgbiesseck/GitHub/BOVIFOCR_MICA_3Dreconstruction/demo/input/MS-Celeb-1M/faces_emore/calfw.bin']
+        # sys.argv += ['--val_data', '/home/bjgbiesseck/GitHub/BOVIFOCR_MICA_3Dreconstruction/demo/input/MS-Celeb-1M/faces_emore/lfw.bin']
+        sys.argv += ['--val_data', '/home/bjgbiesseck/GitHub/BOVIFOCR_MICA_3Dreconstruction/demo/input/MS-Celeb-1M/faces_emore/calfw.bin']
         
 
     args = get_args()
@@ -142,7 +151,7 @@ if __name__ == '__main__':
                 print('done!')
 
                 # tpr, fpr, acc_mean, acc_std, tar, tar_std, far = evaluate(embds_arr, issame, far_target=args.target_far, distance_metric=0, nrof_folds=10)      # original
-                tpr, fpr, acc_mean, acc_std, tar, tar_std, far, dist = evaluate(embds_arr, issame, far_target=args.target_far, distance_metric=0, nrof_folds=10)  # Bernardo
+                tpr, fpr, acc_mean, acc_std, tar, tar_std, far, dist = evaluate(embds_arr, issame, far_target=args.target_far, distance_metric=1, nrof_folds=10)  # Bernardo
 
                 print('eval on %s: acc--%1.5f+-%1.5f, tar--%1.5f+-%1.5f@far=%1.5f' % (k, acc_mean, acc_std, tar, tar_std, far))
 
@@ -151,6 +160,9 @@ if __name__ == '__main__':
                 print('dist.shape:', dist.shape)
                 print('Saving pairs distances:', path_pairs_distances)
                 np.save(path_pairs_distances, dist)
+
+                for i in range(len(dist)):
+                    print(i, 'dist[i]:', dist[i], '    issame[i]:', issame[i])
 
             print('done!')
     else:

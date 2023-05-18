@@ -41,6 +41,9 @@ def calculate_roc(thresholds, embeddings1, embeddings2, actual_issame, distance_
     
     for fold_idx, (train_set, test_set) in enumerate(k_fold.split(indices)):
         
+        print('fold_idx:', fold_idx, '    train_set:', train_set, '    test_set:', test_set)
+        input('PAUSED')
+
         # Find the best threshold for the fold
         acc_train = np.zeros((nrof_thresholds))
         for threshold_idx, threshold in enumerate(thresholds):
