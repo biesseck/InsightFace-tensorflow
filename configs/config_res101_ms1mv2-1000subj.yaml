@@ -1,12 +1,12 @@
 # model params
-backbone_type: resnet_v2_m_50
+backbone_type: resnet_v2_101
 loss_type: arcface
 out_type: E
 
 image_size: 112
 embd_size: 512
 # class_num: 85742   # original
-class_num: 2000        # Bernardo
+class_num: 1000        # Bernardo
 
 
 # hyper params
@@ -35,10 +35,12 @@ augment_margin: 16
 gpu_num: 1
 
 # batch_size: 100    # original
-batch_size: 128     # Bernardo
+batch_size: 64     # Bernardo
+# batch_size: 32     # Bernardo
 
 
-epoch_num: 30
+# epoch_num: 30
+epoch_num: 100
 
 # step_per_epoch: 100000   # original
 step_per_epoch: 1000        # Bernardo
@@ -47,8 +49,8 @@ val_freq: 2000
 
 lr_steps: [5000, 10000, 15000]
 
-# lr_values: [0.004, 0.002, 0.0012, 0.0004]            # original
-# lr_values: [0.04, 0.02, 0.012, 0.004]                # Bernardo
+# lr_values: [0.004, 0.002, 0.0012, 0.0004]          # original
+# lr_values: [0.001, 0.0005, 0.00012, 0.00004]                # Bernardo
 lr_values: [0.01, 0.005, 0.0025, 0.001]                # Bernardo
 
 
@@ -56,11 +58,11 @@ lr_values: [0.01, 0.005, 0.0025, 0.001]                # Bernardo
 # pretrained_model: '/data/hhd/InsightFace-tensorflow/output/20190120-133421/checkpoints/ckpt-m-140000'      # original
 pretrained_model: ''                                                                                         # Bernardo
 
-# train_data: ['/data/hhd/dataset/FaceData/InsightFace/faces_ms1m_arcface.tfrecord']                  # original
-train_data: ['/experiments/BOVIFOCR_project/datasets/faces/MS-Celeb-1M/ms1m-retinaface-t1/images_2000subj.tfrecord']     # Bernardo
+# train_data: ['/data/hhd/dataset/FaceData/InsightFace/faces_ms1m_arcface.tfrecord']                         # original
+train_data: ['/experiments/bjgbiesseck/datasets/MS-Celeb-1M/ms1m-retinaface-t1/images_1000subj.tfrecord']    # Bernardo
 
 # val_data: {'agedb_30': '/data/hhd/dataset/FaceData/InsightFace/faces_ms1m_arcface/agedb_30.bin', 'lfw': '/data/hhd/dataset/FaceData/InsightFace/faces_ms1m_arcface/lfw.bin', 'cfp_ff': '/data/hhd/dataset/FaceData/InsightFace/faces_ms1m_arcface/cfp_ff.bin', 'cfp_fp': '/data/hhd/dataset/FaceData/InsightFace/faces_ms1m_arcface/cfp_fp.bin', 'calfw': '/data/hhd/dataset/FaceData/InsightFace/faces_ms1m_arcface/calfw.bin', 'cplfw': '/data/hhd/dataset/FaceData/InsightFace/faces_ms1m_arcface/cplfw.bin', 'vgg2_fp': '/data/hhd/dataset/FaceData/InsightFace/faces_ms1m_arcface/vgg2_fp.bin'}
-val_data: {'agedb_30': '/home/bjgbiesseck/GitHub/BOVIFOCR_MICA_3Dreconstruction/demo/input/MS-Celeb-1M/faces_emore/agedb_30.bin', 'lfw': '/home/bjgbiesseck/GitHub/BOVIFOCR_MICA_3Dreconstruction/demo/input/MS-Celeb-1M/faces_emore/lfw.bin', 'cfp_ff': '/home/bjgbiesseck/GitHub/BOVIFOCR_MICA_3Dreconstruction/demo/input/MS-Celeb-1M/faces_emore/cfp_ff.bin', 'cfp_fp': '/home/bjgbiesseck/GitHub/BOVIFOCR_MICA_3Dreconstruction/demo/input/MS-Celeb-1M/faces_emore/cfp_fp.bin', 'calfw': '/home/bjgbiesseck/GitHub/BOVIFOCR_MICA_3Dreconstruction/demo/input/MS-Celeb-1M/faces_emore/calfw.bin', 'cplfw': '/home/bjgbiesseck/GitHub/BOVIFOCR_MICA_3Dreconstruction/demo/input/MS-Celeb-1M/faces_emore/cplfw.bin', 'vgg2_fp': '/home/bjgbiesseck/GitHub/BOVIFOCR_MICA_3Dreconstruction/demo/input/MS-Celeb-1M/faces_emore/vgg2_fp.bin'}
+val_data: {'agedb_30': '/experiments/bjgbiesseck/datasets/MS-Celeb-1M/faces_emore/agedb_30.bin', 'lfw': '/experiments/bjgbiesseck/datasets/MS-Celeb-1M/faces_emore/lfw.bin', 'cfp_ff': '/experiments/bjgbiesseck/datasets/MS-Celeb-1M/faces_emore/cfp_ff.bin', 'cfp_fp': '/experiments/bjgbiesseck/datasets/MS-Celeb-1M/faces_emore/cfp_fp.bin', 'calfw': '/experiments/bjgbiesseck/datasets/MS-Celeb-1M/faces_emore/calfw.bin', 'cplfw': '/experiments/bjgbiesseck/datasets/MS-Celeb-1M/faces_emore/cplfw.bin', 'vgg2_fp': '/experiments/bjgbiesseck/datasets/MS-Celeb-1M/faces_emore/vgg2_fp.bin'}
 
 output_dir: './output'
 

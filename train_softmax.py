@@ -37,15 +37,31 @@ def inference(images, labels, is_training_dropout, is_training_bn, config):
     return embds, logits, end_points
 
 
+# Bernardo
+def make_experiment_subdir(config):
+    subdir = ''
+    subdir += 'classes='    + str(config['class_num'])
+    subdir += '_backbone='  + str(config['backbone_type'])
+    subdir += '_epoch-num=' + str(config['epoch_num'])
+    subdir += '_loss='      + str(config['loss_type'])
+    subdir += '_s='         + str(config['logits_scale'])
+    subdir += '_m='         + str(config['logits_margin'])
+    subdir += '_moment='    + str(config['momentum'])
+    subdir += '_batch='     + str(config['batch_size'])
+    subdir += '_lr-init='   + str(config['lr_values'][0])
+    return subdir
+
+
 class Trainer:
     def __init__(self, config, args):
         self.config = config
-        
+
         if args.dir_results == '':
-            subdir = datetime.strftime(datetime.now(), '%Y%m%d-%H%M%S')   # original
+            # subdir = datetime.strftime(datetime.now(), '%Y%m%d-%H%M%S')   # original
+            subdir = make_experiment_subdir(config) + '_' + datetime.strftime(datetime.now(), '%Y%m%d-%H%M%S')
         else:
             subdir = args.dir_results   # Bernardo
-        
+
         self.output_dir = os.path.join(config['output_dir'], subdir)
         self.model_dir = os.path.join(self.output_dir, 'models')
         self.log_dir = os.path.join(self.output_dir, 'log')

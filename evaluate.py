@@ -57,7 +57,7 @@ def evaluate(embeddings, actual_issame, far_target=1e-3, distance_metric=0, nrof
         thresholds = np.arange(0, 1, 0.0025)
     embeddings1 = embeddings[0::2]
     embeddings2 = embeddings[1::2]
-    tpr, fpr, accuracy = calculate_roc(thresholds, embeddings1, embeddings2, np.asarray(actual_issame), distance_metric=distance_metric, nrof_folds=nrof_folds)
+    tpr, fpr, accuracy, dist = calculate_roc(thresholds, embeddings1, embeddings2, np.asarray(actual_issame), distance_metric=distance_metric, nrof_folds=nrof_folds)
     tar, tar_std, far = calculate_tar(thresholds, embeddings1, embeddings2, np.asarray(actual_issame), far_target=far_target, distance_metric=distance_metric, nrof_folds=nrof_folds)
     acc_mean = np.mean(accuracy)
     acc_std = np.std(accuracy)
