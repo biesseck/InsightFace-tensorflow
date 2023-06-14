@@ -40,7 +40,9 @@ def inference(images, labels, is_training_dropout, is_training_bn, config):
 # Bernardo
 def make_experiment_subdir(config):
     subdir = ''
-    subdir += 'classes='    + str(config['class_num'])
+    dataset_name = config['train_data'][0].split('/')[-1].split('.')[0]
+    subdir += 'dataset='    + str(dataset_name)
+    subdir += '_classes='   + str(config['class_num'])
     subdir += '_backbone='  + str(config['backbone_type'])
     subdir += '_epoch-num=' + str(config['epoch_num'])
     subdir += '_loss='      + str(config['loss_type'])

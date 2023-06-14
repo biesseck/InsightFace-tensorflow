@@ -58,13 +58,11 @@ lr_values: [0.01, 0.005, 0.0025, 0.001]                # Bernardo
 # pretrained_model: '/data/hhd/InsightFace-tensorflow/output/20190120-133421/checkpoints/ckpt-m-140000'      # original
 pretrained_model: ''                                                                                         # Bernardo
 
-# train_data: ['/data/hhd/dataset/FaceData/InsightFace/faces_ms1m_arcface.tfrecord']                  # original
-# train_data: ['/experiments/bjgbiesseck/datasets/MS-Celeb-1M/ms1m-retinaface-t1/images_2000subj.tfrecord']     # Bernardo
-train_data: ['/home/bjgbiesseck/datasets/MS-Celeb-1M/ms1m-retinaface-t1/images_2000subj.tfrecord']     # Bernardo
+# train_data: ['/data/hhd/dataset/FaceData/InsightFace/faces_ms1m_arcface.tfrecord']             # original
+train_data: ['/home/bjgbiesseck/datasets/WebFace260M/WebFace260M_2000subj.tfrecord']     # Bernardo
 
 # val_data: {'agedb_30': '/data/hhd/dataset/FaceData/InsightFace/faces_ms1m_arcface/agedb_30.bin', 'lfw': '/data/hhd/dataset/FaceData/InsightFace/faces_ms1m_arcface/lfw.bin', 'cfp_ff': '/data/hhd/dataset/FaceData/InsightFace/faces_ms1m_arcface/cfp_ff.bin', 'cfp_fp': '/data/hhd/dataset/FaceData/InsightFace/faces_ms1m_arcface/cfp_fp.bin', 'calfw': '/data/hhd/dataset/FaceData/InsightFace/faces_ms1m_arcface/calfw.bin', 'cplfw': '/data/hhd/dataset/FaceData/InsightFace/faces_ms1m_arcface/cplfw.bin', 'vgg2_fp': '/data/hhd/dataset/FaceData/InsightFace/faces_ms1m_arcface/vgg2_fp.bin'}
-# val_data: {'agedb_30': '/experiments/bjgbiesseck/datasets/MS-Celeb-1M/faces_emore/agedb_30.bin', 'lfw': '/experiments/bjgbiesseck/datasets/MS-Celeb-1M/faces_emore/lfw.bin', 'cfp_ff': '/experiments/bjgbiesseck/datasets/MS-Celeb-1M/faces_emore/cfp_ff.bin', 'cfp_fp': '/experiments/bjgbiesseck/datasets/MS-Celeb-1M/faces_emore/cfp_fp.bin', 'calfw': '/experiments/bjgbiesseck/datasets/MS-Celeb-1M/faces_emore/calfw.bin', 'cplfw': '/experiments/bjgbiesseck/datasets/MS-Celeb-1M/faces_emore/cplfw.bin', 'vgg2_fp': '/experiments/bjgbiesseck/datasets/MS-Celeb-1M/faces_emore/vgg2_fp.bin'}
-val_data: {'agedb_30': '/home/bjgbiesseck/datasets/MS-Celeb-1M/ms1m-retinaface-t1/agedb_30.bin', 'lfw': '/home/bjgbiesseck/datasets/MS-Celeb-1M/ms1m-retinaface-t1/lfw.bin', 'cfp_fp': '/home/bjgbiesseck/datasets/MS-Celeb-1M/ms1m-retinaface-t1/cfp_fp.bin'}
+val_data: {'agedb_30': '/experiments/bjgbiesseck/datasets/MS-Celeb-1M/faces_emore/agedb_30.bin', 'lfw': '/experiments/bjgbiesseck/datasets/MS-Celeb-1M/faces_emore/lfw.bin', 'cfp_ff': '/experiments/bjgbiesseck/datasets/MS-Celeb-1M/faces_emore/cfp_ff.bin', 'cfp_fp': '/experiments/bjgbiesseck/datasets/MS-Celeb-1M/faces_emore/cfp_fp.bin', 'calfw': '/experiments/bjgbiesseck/datasets/MS-Celeb-1M/faces_emore/calfw.bin', 'cplfw': '/experiments/bjgbiesseck/datasets/MS-Celeb-1M/faces_emore/cplfw.bin', 'vgg2_fp': '/experiments/bjgbiesseck/datasets/MS-Celeb-1M/faces_emore/vgg2_fp.bin'}
 
 output_dir: './output'
 
