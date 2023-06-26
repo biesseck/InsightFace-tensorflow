@@ -104,7 +104,9 @@ if __name__ == '__main__':
         # sys.argv += ['--config_path', './configs/config_ms1m_100_ms1mv2-1000subj.yaml']
         # sys.argv += ['--config_path', './configs/config_ms1m_100_ms1mv2-2000subj.yaml']
         # sys.argv += ['--config_path', './configs/config_ms1m_100_ms1mv2-5000subj.yaml']
-        sys.argv += ['--config_path', './configs/config_res50_ms1mv2-10000subj.yaml']
+        sys.argv += ['--config_path', './configs/config_res50_ms1mv2-1000subj.yaml']
+        # sys.argv += ['--config_path', './configs/config_res50_ms1mv2-2000subj.yaml']
+        # sys.argv += ['--config_path', './configs/config_res50_ms1mv2-5000subj.yaml']
         # sys.argv += ['--config_path', './configs/config_res50_ms1mv2-10000subj.yaml']
         # sys.argv += ['--config_path', './configs/config_res50_webface-1000subj.yaml']
         # sys.argv += ['--config_path', './configs/config_res50_webface-2000subj.yaml']
@@ -115,19 +117,19 @@ if __name__ == '__main__':
         # sys.argv += ['--model_path', './output/arcface-resnet-v2-m-50_dataset=ms1mv2_1000classes_eval=lfw-calfw-etc_epoch=30_lr=0.01/checkpoints/ckpt-m-30000']
         # sys.argv += ['--model_path', './output/arcface-resnet-v2-m-50_dataset=ms1mv2_2000classes_eval=lfw-calfw-etc_epoch=30_lr=0.01/checkpoints/ckpt-m-30000']
         # sys.argv += ['--model_path', './output/arcface-resnet-v2-m-50_dataset=ms1mv2_5000classes_eval=lfw-calfw-etc_epoch=30_lr=0.01/checkpoints/ckpt-m-30000']
+        sys.argv += ['--model_path', './output/dataset=MS1MV3_1000subj_classes=1000_backbone=resnet-v2-m-50_epoch-num=100_margin=0.5_scale=64.0_lr=0.01_wd=0.0005_momentum=0.9_20230518-004011/checkpoints/ckpt-m-100000']
+        # sys.argv += ['--model_path', './output/dataset=MS1MV3_2000subj_classes=2000_backbone=resnet-v2-m-50_epoch-num=100_margin=0.5_scale=64.0_lr=0.01_wd=0.0005_momentum=0.9_20230518-010456/checkpoints/ckpt-m-100000']
+        # sys.argv += ['--model_path', './output/dataset=MS1MV3_classes=5000_backbone=resnet_v2_m_50_epoch-num=100_loss=arcface_s=64.0_m=0.5_moment=0.9_batch=64_lr-init=0.1_20230518-214716/checkpoints/ckpt-m-100000']
         # sys.argv += ['--model_path', './output/dataset=MS1MV3_classes=10000_backbone=resnet_v2_m_50_epoch-num=200_loss=arcface_s=64.0_m=0.5_moment=0.9_batch=64_lr-init=0.005_20230522-100202/checkpoints/ckpt-m-200000']
-        sys.argv += ['--model_path', './output/dataset=MS1MV3_classes=10000_backbone=resnet_v2_m_50_epoch-num=200_loss=arcface_s=64.0_m=0.5_moment=0.9_batch=64_lr-init=0.005_20230522-100202/checkpoints/ckpt-m-200000']
         # sys.argv += ['--model_path', './output/dataset=WebFace260M_1000subj_classes=1000_backbone=resnet_v2_m_50_epoch-num=100_loss=arcface_s=64.0_m=0.5_moment=0.9_batch=64_lr-init=0.01_20230524-142404/checkpoints/ckpt-m-100000']
         # sys.argv += ['--model_path', './output/dataset=WebFace260M_2000subj_classes=2000_backbone=resnet_v2_m_50_epoch-num=100_loss=arcface_s=64.0_m=0.5_moment=0.9_batch=64_lr-init=0.01_20230524-190517/checkpoints/ckpt-m-100000']
-        # sys.argv += ['--model_path', './output/dataset=WebFace260M_2000subj_classes=2000_backbone=resnet_v2_m_50_epoch-num=100_loss=arcface_s=64.0_m=0.5_moment=0.9_batch=64_lr-init=0.01_20230602-104413/checkpoints/ckpt-m-100000']
         # sys.argv += ['--model_path', './output/dataset=WebFace260M_5000subj_classes=5000_backbone=resnet_v2_m_50_epoch-num=150_loss=arcface_s=64.0_m=0.5_moment=0.9_batch=64_lr-init=0.01_20230525-093855/checkpoints/ckpt-m-150000']
         # sys.argv += ['--model_path', './output/dataset=WebFace260M_10000subj_classes=10000_backbone=resnet_v2_m_50_epoch-num=150_loss=arcface_s=64.0_m=0.5_moment=0.9_batch=64_lr-init=0.01_20230526-101421/checkpoints/ckpt-m-150000']
 
     if not '--val_data' in sys.argv:
-        # sys.argv += ['--val_data', '/home/bjgbiesseck/GitHub/BOVIFOCR_MICA_3Dreconstruction/demo/input/MS-Celeb-1M/faces_emore/lfw.bin']
-        # sys.argv += ['--val_data', '/home/bjgbiesseck/GitHub/BOVIFOCR_MICA_3Dreconstruction/demo/input/MS-Celeb-1M/faces_emore/calfw.bin']
-        # sys.argv += ['--val_data', '/home/bjgbiesseck/datasets/MS-Celeb-1M/ms1m-retinaface-t1/lfw.bin']
-        sys.argv += ['--val_data', '/nobackup/unico/datasets/face_recognition/MS-Celeb-1M/faces_emore/lfw.bin']
+        sys.argv += ['--val_data', '/home/bjgbiesseck/datasets/MS-Celeb-1M/ms1m-retinaface-t1/lfw.bin']
+        # sys.argv += ['--val_data', '/home/bjgbiesseck/datasets/MS-Celeb-1M/ms1m-retinaface-t1/agedb_30.bin']
+        # sys.argv += ['--val_data', '/home/bjgbiesseck/datasets/MS-Celeb-1M/ms1m-retinaface-t1/cfp_fp.bin']
         
 
     args = get_args()
