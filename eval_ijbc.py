@@ -64,20 +64,13 @@ class Embedding(object):
         image_size = (112, 112)
         self.image_size = image_size
 
+        # original
         # weight = torch.load(prefix)
         # resnet = get_model(args.network, dropout=0, fp16=False).cuda()
         # resnet.load_state_dict(weight)
         # model = torch.nn.DataParallel(resnet)
         # self.model = model
         # self.model.eval()
-
-        # print('building...')
-        # config = yaml.load(open(config_path))
-        # self.images = tf.placeholder(dtype=tf.float32, shape=[None, config['image_size'], config['image_size'], 3], name='input_image')
-        # self.train_phase_dropout = tf.placeholder(dtype=tf.bool, shape=None, name='train_phase')
-        # self.train_phase_bn = tf.placeholder(dtype=tf.bool, shape=None, name='train_phase_last')
-        # self.embds, _ = get_embd(self.images, self.train_phase_dropout, self.train_phase_bn, config)
-        # print('done!')
 
         src = np.array([
             [30.2946, 51.6963],
@@ -91,7 +84,6 @@ class Embedding(object):
         self.data_shape = data_shape
 
     def get(self, rimg, landmark):
-
         assert landmark.shape[0] == 68 or landmark.shape[0] == 5
         assert landmark.shape[1] == 2
         if landmark.shape[0] == 68:
@@ -199,7 +191,7 @@ def get_image_feature(img_path, files_list, model_path, epoch, gpu_id):
     tf_config.gpu_options.allow_growth = True
     with tf.Session(config=tf_config) as sess:
         tf.global_variables_initializer().run()
-        print('loading...')
+        print('loading model:', model_path)
         saver = tf.train.Saver()
         saver.restore(sess, model_path)
         print('done!')
@@ -518,6 +510,7 @@ colours = dict(
 x_labels = [10 ** -6, 10 ** -5, 10 ** -4, 10 ** -3, 10 ** -2, 10 ** -1]
 tpr_fpr_table = PrettyTable(['Methods'] + [str(x) for x in x_labels])
 fig = plt.figure()
+roc_auc = 0.0
 for method in methods:
     fpr, tpr, _ = roc_curve(label, scores[method])
     roc_auc = auc(fpr, tpr)
@@ -548,3 +541,6 @@ plt.title('ROC on IJB')
 plt.legend(loc="lower right")
 fig.savefig(os.path.join(save_path, '%s.pdf' % target.lower()))
 print(tpr_fpr_table)
+
+# Bernardo
+print('AUC = %0.4f %%' % (roc_auc * 100))
