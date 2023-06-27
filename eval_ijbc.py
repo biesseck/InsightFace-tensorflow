@@ -37,9 +37,9 @@ warnings.filterwarnings("ignore")
 parser = argparse.ArgumentParser(description='do ijb test')
 # general
 parser.add_argument('--config-path', default='./configs/config_res50_ms1mv2-1000subj.yaml', help='path to load model.')
-parser.add_argument('--model-prefix', default='./output/dataset=MS1MV3_1000subj_classes=1000_backbone=resnet-v2-m-50_epoch-num=100_margin=0.5_scale=64.0_lr=0.01_wd=0.0005_momentum=0.9_20230518-004011/checkpoints/ckpt-m-100000', help='path to load model.')
+parser.add_argument('--model-prefix', default='output/dataset=MS1MV3_1000subj_classes=1000_backbone=resnet-v2-m-50_epoch-num=100_margin=0.5_scale=64.0_lr=0.01_wd=0.0005_momentum=0.9_20230518-004011/checkpoints/ckpt-m-100000', help='path to load model.')
 parser.add_argument('--image-path', default='/datasets1/bjgbiesseck/IJB-C/rec_data_ijbc/', type=str, help='')
-parser.add_argument('--result-dir', default='.', type=str, help='')
+parser.add_argument('--result-dir', default='results_ijbc', type=str, help='')
 parser.add_argument('--batch-size', default=128, type=int, help='')
 parser.add_argument('--network', default='iresnet50', type=str, help='')
 parser.add_argument('--job', default='insightface', type=str, help='job name')
@@ -354,130 +354,151 @@ def read_score(path):
     return img_feats
 
 
-# # Step1: Load Meta Data
 
-# In[ ]:
-
-assert target == 'IJBC' or target == 'IJBB'
-
-# =============================================================
-# load image and template relationships for template feature embedding
-# tid --> template id,  mid --> media id
-# format:
-#           image_name tid mid
-# =============================================================
-start = timeit.default_timer()
-templates, medias = read_template_media_list(
-    os.path.join('%s/meta' % image_path,
-                 '%s_face_tid_mid.txt' % target.lower()))
-stop = timeit.default_timer()
-print('Time: %.2f s. ' % (stop - start))
-
-# In[ ]:
-
-# =============================================================
-# load template pairs for template-to-template verification
-# tid : template id,  label : 1/0
-# format:
-#           tid_1 tid_2 label
-# =============================================================
-start = timeit.default_timer()
-p1, p2, label = read_template_pair_list(
-    os.path.join('%s/meta' % image_path,
-                 '%s_template_pair_label.txt' % target.lower()))
-stop = timeit.default_timer()
-print('Time: %.2f s. ' % (stop - start))
-
-# # Step 2: Get Image Features
-
-# In[ ]:
-
-# =============================================================
-# load image features
-# format:
-#           img_feats: [image_num x feats_dim] (227630, 512)
-# =============================================================
-start = timeit.default_timer()
-# img_path = '%s/loose_crop' % image_path
-img_path = '%s/refined_img' % image_path
-img_list_path = '%s/meta/%s_name_5pts_score.txt' % (image_path, target.lower())
-img_list = open(img_list_path)
-files = img_list.readlines()
-# files_list = divideIntoNstrand(files, rank_size)
-files_list = files
-
-# img_feats
-# for i in range(rank_size):
-img_feats, faceness_scores = get_image_feature(img_path, files_list,
-                                               model_path, 0, gpu_id)
-stop = timeit.default_timer()
-print('Time: %.2f s. ' % (stop - start))
-print('Feature Shape: ({} , {}) .'.format(img_feats.shape[0],
-                                          img_feats.shape[1]))
-
-# # Step3: Get Template Features
-
-# In[ ]:
-
-# =============================================================
-# compute template features from image features.
-# =============================================================
-start = timeit.default_timer()
-# ==========================================================
-# Norm feature before aggregation into template feature?
-# Feature norm from embedding network and faceness score are able to decrease weights for noise samples (not face).
-# ==========================================================
-# 1. FaceScore （Feature Norm）
-# 2. FaceScore （Detector）
-
-if use_flip_test:
-    # concat --- F1
-    # img_input_feats = img_feats
-    # add --- F2
-    img_input_feats = img_feats[:, 0:img_feats.shape[1] //
-                                     2] + img_feats[:, img_feats.shape[1] // 2:]
-else:
-    img_input_feats = img_feats[:, 0:img_feats.shape[1] // 2]
-
-if use_norm_score:
-    img_input_feats = img_input_feats
-else:
-    # normalise features to remove norm information
-    img_input_feats = img_input_feats / np.sqrt(
-        np.sum(img_input_feats ** 2, -1, keepdims=True))
-
-if use_detector_score:
-    print(img_input_feats.shape, faceness_scores.shape)
-    img_input_feats = img_input_feats * faceness_scores[:, np.newaxis]
-else:
-    img_input_feats = img_input_feats
-
-template_norm_feats, unique_templates = image2template_feature(
-    img_input_feats, templates, medias)
-stop = timeit.default_timer()
-print('Time: %.2f s. ' % (stop - start))
-
-# # Step 4: Get Template Similarity Scores
-
-# In[ ]:
-
-# =============================================================
-# compute verification scores between template pairs.
-# =============================================================
-start = timeit.default_timer()
-score = verification(template_norm_feats, unique_templates, p1, p2)
-stop = timeit.default_timer()
-print('Time: %.2f s. ' % (stop - start))
-
-# In[ ]:
-save_path = os.path.join(result_dir, args.job)
-# save_path = result_dir + '/%s_result' % target
-
-if not os.path.exists(save_path):
-    os.makedirs(save_path)
-
+exper_id = model_path.split('/')[-3]            # Bernardo
+save_path = os.path.join(result_dir, exper_id)  # Bernardo
 score_save_file = os.path.join(save_path, "%s.npy" % target.lower())
-np.save(score_save_file, score)
+label_save_file = os.path.join(save_path, "label.npy")
+
+# Bernardo
+if not os.path.exists(score_save_file):
+
+    # # Step1: Load Meta Data
+
+    # In[ ]:
+
+    assert target == 'IJBC' or target == 'IJBB'
+
+    # =============================================================
+    # load image and template relationships for template feature embedding
+    # tid --> template id,  mid --> media id
+    # format:
+    #           image_name tid mid
+    # =============================================================
+    start = timeit.default_timer()
+    templates, medias = read_template_media_list(
+        os.path.join('%s/meta' % image_path,
+                    '%s_face_tid_mid.txt' % target.lower()))
+    stop = timeit.default_timer()
+    print('Time: %.2f s. ' % (stop - start))
+
+    # In[ ]:
+
+    # =============================================================
+    # load template pairs for template-to-template verification
+    # tid : template id,  label : 1/0
+    # format:
+    #           tid_1 tid_2 label
+    # =============================================================
+    start = timeit.default_timer()
+    p1, p2, label = read_template_pair_list(
+        os.path.join('%s/meta' % image_path,
+                    '%s_template_pair_label.txt' % target.lower()))
+    stop = timeit.default_timer()
+    print('Time: %.2f s. ' % (stop - start))
+
+    # # Step 2: Get Image Features
+
+    # In[ ]:
+
+    # =============================================================
+    # load image features
+    # format:
+    #           img_feats: [image_num x feats_dim] (227630, 512)
+    # =============================================================
+    start = timeit.default_timer()
+    # img_path = '%s/loose_crop' % image_path
+    img_path = '%s/refined_img' % image_path
+    img_list_path = '%s/meta/%s_name_5pts_score.txt' % (image_path, target.lower())
+    img_list = open(img_list_path)
+    files = img_list.readlines()
+    # files_list = divideIntoNstrand(files, rank_size)
+    files_list = files
+
+    # img_feats
+    # for i in range(rank_size):
+    img_feats, faceness_scores = get_image_feature(img_path, files_list,
+                                                model_path, 0, gpu_id)
+    stop = timeit.default_timer()
+    print('Time: %.2f s. ' % (stop - start))
+    print('Feature Shape: ({} , {}) .'.format(img_feats.shape[0],
+                                            img_feats.shape[1]))
+
+    # # Step3: Get Template Features
+
+    # In[ ]:
+
+    # =============================================================
+    # compute template features from image features.
+    # =============================================================
+    start = timeit.default_timer()
+    # ==========================================================
+    # Norm feature before aggregation into template feature?
+    # Feature norm from embedding network and faceness score are able to decrease weights for noise samples (not face).
+    # ==========================================================
+    # 1. FaceScore （Feature Norm）
+    # 2. FaceScore （Detector）
+
+    if use_flip_test:
+        # concat --- F1
+        # img_input_feats = img_feats
+        # add --- F2
+        img_input_feats = img_feats[:, 0:img_feats.shape[1] //
+                                        2] + img_feats[:, img_feats.shape[1] // 2:]
+    else:
+        img_input_feats = img_feats[:, 0:img_feats.shape[1] // 2]
+
+    if use_norm_score:
+        img_input_feats = img_input_feats
+    else:
+        # normalise features to remove norm information
+        img_input_feats = img_input_feats / np.sqrt(
+            np.sum(img_input_feats ** 2, -1, keepdims=True))
+
+    if use_detector_score:
+        print(img_input_feats.shape, faceness_scores.shape)
+        img_input_feats = img_input_feats * faceness_scores[:, np.newaxis]
+    else:
+        img_input_feats = img_input_feats
+
+    template_norm_feats, unique_templates = image2template_feature(
+        img_input_feats, templates, medias)
+    stop = timeit.default_timer()
+    print('Time: %.2f s. ' % (stop - start))
+
+    # # Step 4: Get Template Similarity Scores
+
+    # In[ ]:
+
+    # =============================================================
+    # compute verification scores between template pairs.
+    # =============================================================
+    start = timeit.default_timer()
+    score = verification(template_norm_feats, unique_templates, p1, p2)
+    stop = timeit.default_timer()
+    print('Time: %.2f s. ' % (stop - start))
+
+
+    # In[ ]:
+    # exper_id = model_path.split('/')[-2]            # Bernardo
+    # save_path = os.path.join(result_dir, exper_id)  # Bernardo
+    # save_path = os.path.join(result_dir, args.job)
+    # save_path = result_dir + '/%s_result' % target
+
+    if not os.path.exists(save_path):
+        os.makedirs(save_path)
+
+
+    # score_save_file = os.path.join(save_path, "%s.npy" % target.lower())
+    np.save(score_save_file, score)
+    np.save(label_save_file, label)
+
+
+else:  # Bernardo: load saved scores (distances)
+    score = np.load(score_save_file)
+    label = np.load(label_save_file)
+
+
 
 # # Step 5: Get ROC Curves and TPR@FPR Table
 
