@@ -98,9 +98,13 @@ class Embedding(object):
         tform = trans.SimilarityTransform()
         tform.estimate(landmark5, self.src)
         M = tform.params[0:2, :]
-        img = cv2.warpAffine(rimg,
-                             M, (self.image_size[1], self.image_size[0]),
-                             borderValue=0.0)
+
+        # original (commented by Bernardo because images are already aligned)
+        # img = cv2.warpAffine(rimg,
+        #                      M, (self.image_size[1], self.image_size[0]),
+        #                      borderValue=0.0)
+        img = rimg   # Bernardo
+
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         img_flip = np.fliplr(img)
         # img = np.transpose(img, (2, 0, 1))  # 3*112*112, RGB
@@ -208,6 +212,18 @@ def get_image_feature(img_path, files_list, model_path, epoch, gpu_id):
                         dtype=np.float32)
             lmk = lmk.reshape((5, 2))
             input_blob = embedding.get(img, lmk)
+
+            ''' # BERNARDO'S DEBUG TEST
+            debug_test_path = 'results_ijbc/debugging_imgs'
+            if not os.path.exists(debug_test_path):
+                os.mkdir(debug_test_path)
+            debug_img_name = debug_test_path + '/' + img_name.split('/')[-1].split('.')[0] + '.png'
+            print('Saving debug_img_name:', debug_img_name)
+            cv2.imwrite(debug_img_name, cv2.cvtColor(input_blob[0], cv2.COLOR_RGB2BGR))
+            # sys.exit(0)
+            if debug_img_name.endswith('128.png'):
+                sys.exit(0)
+            ''' # BERNARDO'S DEBUG TEST
 
             batch_data[2 * (img_index - batch * batch_size)][:] = input_blob[0]
             batch_data[2 * (img_index - batch * batch_size) + 1][:] = input_blob[1]
