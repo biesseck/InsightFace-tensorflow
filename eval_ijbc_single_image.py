@@ -38,8 +38,9 @@ parser = argparse.ArgumentParser(description='do ijb test')
 # general
 parser.add_argument('--config-path', default='./configs/config_res50_ms1mv2-1000subj.yaml', help='path to load model.')
 parser.add_argument('--model-prefix', default='output/dataset=MS1MV3_1000subj_classes=1000_backbone=resnet-v2-m-50_epoch-num=100_margin=0.5_scale=64.0_lr=0.01_wd=0.0005_momentum=0.9_20230518-004011/checkpoints/ckpt-m-100000', help='path to load model.')
-parser.add_argument('--image-path', default='/datasets1/bjgbiesseck/IJB-C/rec_data_ijbc/', type=str, help='')
-parser.add_argument('--result-dir', default='results_ijbc', type=str, help='')
+# parser.add_argument('--image-path', default='/datasets1/bjgbiesseck/IJB-C/rec_data_ijbc/', type=str, help='')
+parser.add_argument('--image-path', default='/datasets1/bjgbiesseck/IJB-C/IJB/IJB-C/crops/', type=str, help='')
+parser.add_argument('--result-dir', default='results_ijbc_single_img', type=str, help='')
 parser.add_argument('--batch-size', default=128, type=int, help='')
 parser.add_argument('--network', default='iresnet50', type=str, help='')
 parser.add_argument('--job', default='insightface', type=str, help='job name')
@@ -146,6 +147,16 @@ def read_template_media_list(path):
     return templates, medias
 
 
+# BERNARDO
+def read_template_original_ijbc(path):
+    # ijb_meta = np.loadtxt(path, dtype=str)
+    ijb_meta = pd.read_csv(path, sep=',', header=0).values
+    template_id = ijb_meta[:, 0].astype(np.int)
+    subject_id = ijb_meta[:, 1]
+    filename = ijb_meta[:, 2]
+    return template_id, subject_id, filename
+
+
 # In[ ]:
 
 
@@ -158,6 +169,103 @@ def read_template_pair_list(path):
     t2 = pairs[:, 1].astype(np.int)
     label = pairs[:, 2].astype(np.int)
     return t1, t2, label
+
+
+# BERNARDO
+def read_template_pair_list_original_ijbc(path):
+    pairs = pd.read_csv(path, sep=',', header=0).values
+    t1 = pairs[:, 0].astype(np.int)
+    t2 = pairs[:, 1].astype(np.int)
+    # label = pairs[:, 2].astype(np.int)
+    # return t1, t2, label
+    return t1, t2
+
+
+# BERNARDO
+def make_labels_from_template_pairs_original_ijbc(enroll_template_id, enroll_subject_id, verif_template_id, verif_subject_id, p1, p2):
+    assert len(p1) == len(p2)
+
+    enroll_template_dict = {}
+    for i in range(len(enroll_template_id)):
+        enroll_template_dict[enroll_template_id[i]] = enroll_subject_id[i]
+
+    verif_template_dict = {}
+    for i in range(len(verif_template_id)):
+        verif_template_dict[verif_template_id[i]] = verif_subject_id[i]
+    
+    label = np.zeros((len(p1)), dtype=int)
+    for i, (t1, t2) in enumerate(zip(p1, p2)):
+        label[i] = int(enroll_template_dict[t1] == verif_template_dict[t2])
+        # print('i:', i, '    t1:', t1, '    t2:', t2)
+        # print(f'enroll_template_dict[{t1}]: {enroll_template_dict[t1]}    verif_template_dict[{t2}]: {verif_template_dict[t2]}')
+        # print(f'label[{i}]: {label[i]}')
+        # input('PAUSED')
+        # print('----------------')
+    
+    return label
+
+
+# BERNARDO
+def adjust_file_names(enroll_subject_id, enroll_filenames, verif_subject_id, verif_filenames):
+    enroll_img_paths = [None] * len(enroll_filenames)
+    verif_img_paths = [None] * len(verif_filenames)
+
+    for i in range(len(enroll_img_paths)):
+        enroll_data = enroll_filenames[i].split('/')
+        enroll_img_paths[i] = os.path.join(enroll_data[0], str(enroll_subject_id[i])+'_'+enroll_data[1].replace('.png', '.jpg')) + str(' -1' * 10) + ' 1.0'
+        # print(f'enroll_img_paths[{i}]: {enroll_img_paths[i]}')
+        # input('PAUSED')
+    
+    for i in range(len(verif_filenames)):
+        verif_data = verif_filenames[i].split('/')
+        verif_img_paths[i] = os.path.join(verif_data[0], str(verif_subject_id[i])+'_'+verif_data[1].replace('.png', '.jpg')) + str(' -1' * 10) + ' 1.0'
+        # print(f'verif_img_paths[{i}]: {verif_img_paths[i]}')
+        # input('PAUSED')
+
+    files_list = enroll_img_paths + verif_img_paths
+    files_list = list(set(files_list))    # unique files names
+    files_list.sort()
+    return files_list
+
+
+# Bernardo
+def resize_img(image, target_size=(112, 112)):
+    # Get the original image dimensions
+    original_height, original_width, _ = image.shape
+
+    # Calculate the scaling factor for resizing while preserving the aspect ratio
+    scaling_factor = max((target_size[0]+1) / original_height, (target_size[1]+1) / original_width)
+    # scaling_factor = min(np.sqrt(np.power(target_size[0]-original_height,2)), np.sqrt(np.power(target_size[1]-original_width,2)))
+    # scaling_factor = max(original_height/original_width, original_width/original_height)
+
+    # Calculate the new dimensions after resizing
+    new_width = int(original_width * scaling_factor)
+    new_height = int(original_height * scaling_factor)
+    # print('new_height:', new_height, '    new_width:', new_width)
+
+    # Resize the image while maintaining the aspect ratio
+    resized_image = cv2.resize(image, (new_width, new_height))
+
+    # Calculate the center coordinates
+    center_x, center_y = new_width // 2, new_height // 2
+    half_target_width, half_target_height = target_size[0] // 2, target_size[1] // 2
+
+    # Calculate the cropping region
+    left = center_x - half_target_width
+    right = left + target_size[0]
+    top = center_y - half_target_height
+    bottom = top + target_size[1]
+
+    # Check if resizing resulted in dimensions different than the target size (112, 112)
+    if new_width != target_size[0] or new_height != target_size[1]:
+        # If so, crop the image to the target size (112, 112)
+        cropped_image = resized_image[top:bottom, left:right]
+    else:
+        # Otherwise, keep the resized image as is (already 112x112)
+        cropped_image = resized_image
+
+    return cropped_image
+
 
 
 # In[ ]:
@@ -211,6 +319,16 @@ def get_image_feature(img_path, files_list, model_path, epoch, gpu_id):
             lmk = np.array([float(x) for x in name_lmk_score[1:-1]],
                         dtype=np.float32)
             lmk = lmk.reshape((5, 2))
+
+            # Bernardo
+            # print('img_name:', img_name)
+            # print('img (before):', img.shape)
+            img = resize_img(img, (112, 112))   # Bernardo
+            # print('img (after):', img.shape)
+            # cv2.imwrite(str(img_index)+'.png', img)
+            # input('PAUSE')
+            # print('---------------')
+            # Bernardo
             input_blob = embedding.get(img, lmk)
 
             ''' # BERNARDO'S DEBUG TEST
@@ -244,6 +362,7 @@ def get_image_feature(img_path, files_list, model_path, epoch, gpu_id):
             lmk = np.array([float(x) for x in name_lmk_score[1:-1]],
                         dtype=np.float32)
             lmk = lmk.reshape((5, 2))
+            img = resize_img(img, (112, 112))   # Bernardo
             input_blob = embedding.get(img, lmk)
             batch_data[2 * img_index][:] = input_blob[0]
             batch_data[2 * img_index + 1][:] = input_blob[1]
@@ -386,11 +505,21 @@ assert target == 'IJBC' or target == 'IJBB'
 #           image_name tid mid
 # =============================================================
 start = timeit.default_timer()
-templates, medias = read_template_media_list(
-    os.path.join('%s/meta' % image_path,
-                '%s_face_tid_mid.txt' % target.lower()))
+# templates, medias = read_template_media_list(os.path.join('%s/meta' % image_path, '%s_face_tid_mid.txt' % target.lower()))
+enroll_template_id, enroll_subject_id, enroll_filenames = read_template_original_ijbc('/datasets1/bjgbiesseck/IJB-C/IJB/IJB-C/protocols/test2/enroll_templates.csv')  # one image
+verif_template_id, verif_subject_id, verif_filenames = read_template_original_ijbc('/datasets1/bjgbiesseck/IJB-C/IJB/IJB-C/protocols/test2/verif_templates.csv')  # one image
 stop = timeit.default_timer()
 print('Time: %.2f s. ' % (stop - start))
+
+'''
+# TESTE BERNARDO
+print('enroll_template_id', enroll_template_id)
+print('enroll_subject_id', enroll_subject_id)
+print('enroll_filename', enroll_filename)
+sys.exit(0)
+# TESTE BERNARDO
+'''
+
 
 # In[ ]:
 
@@ -401,12 +530,20 @@ print('Time: %.2f s. ' % (stop - start))
 #           tid_1 tid_2 label
 # =============================================================
 start = timeit.default_timer()
-p1, p2, label = read_template_pair_list(
-    os.path.join('%s/meta' % image_path,
-                '%s_template_pair_label.txt' % target.lower()))
+# p1, p2, label = read_template_pair_list(os.path.join('%s/meta' % image_path, '%s_template_pair_label.txt' % target.lower()))
+p1, p2 = read_template_pair_list_original_ijbc('/datasets1/bjgbiesseck/IJB-C/IJB/IJB-C/protocols/test2/match.csv')
+label = make_labels_from_template_pairs_original_ijbc(enroll_template_id, enroll_subject_id, verif_template_id, verif_subject_id, p1, p2)
 stop = timeit.default_timer()
 print('Time: %.2f s. ' % (stop - start))
 
+'''
+# TESTE BERNARDO
+print('label', label)
+print('label==1', len(np.where(label==1)[0]))
+print('label==0', len(np.where(label==0)[0]))
+sys.exit(0)
+# TESTE BERNARDO
+'''
 
 
 # Bernardo
@@ -421,18 +558,20 @@ if not os.path.exists(img_feats_save_file):
     #           img_feats: [image_num x feats_dim] (227630, 512)
     # =============================================================
     start = timeit.default_timer()
-    # img_path = '%s/loose_crop' % image_path
-    img_path = '%s/refined_img' % image_path
-    img_list_path = '%s/meta/%s_name_5pts_score.txt' % (image_path, target.lower())
-    img_list = open(img_list_path)
-    files = img_list.readlines()
-    # files_list = divideIntoNstrand(files, rank_size)
-    files_list = files
+    # img_path = '%s/loose_crop' % image_path   # original
+    # img_path = '%s/refined_img' % image_path  # Bernardo
+    img_path = image_path                       # Bernardo
+    # img_list_path = '%s/meta/%s_name_5pts_score.txt' % (image_path, target.lower())
+    # img_list = open(img_list_path)
+    # files = img_list.readlines()
+    # # files_list = divideIntoNstrand(files, rank_size)
+    # files_list = files
+
+    files_list = adjust_file_names(enroll_subject_id, enroll_filenames, verif_subject_id, verif_filenames)
 
     # img_feats
     # for i in range(rank_size):
-    img_feats, faceness_scores = get_image_feature(img_path, files_list,
-                                                model_path, 0, gpu_id)
+    img_feats, faceness_scores = get_image_feature(img_path, files_list, model_path, 0, gpu_id)
     stop = timeit.default_timer()
     print('Time: %.2f s. ' % (stop - start))
     print('Feature Shape: ({} , {}) .'.format(img_feats.shape[0],
@@ -493,13 +632,10 @@ if use_detector_score:
 else:
     img_input_feats = img_input_feats
 
-template_norm_feats, unique_templates = image2template_feature(
-    img_input_feats, templates, medias)
+# template_norm_feats, unique_templates = image2template_feature(img_input_feats, templates, medias)                     # original
+template_norm_feats, unique_templates = image2template_feature(img_input_feats, enroll_template_id, verif_template_id)   # Bernardo
 stop = timeit.default_timer()
 print('Time: %.2f s. ' % (stop - start))
-
-
-
 
 
 # # Step 4: Get Template Similarity Scores
