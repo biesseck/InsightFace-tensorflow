@@ -39,7 +39,7 @@ parser = argparse.ArgumentParser(description='do ijb test')
 parser.add_argument('--config-path', default='./configs/config_res50_ms1mv2-1000subj.yaml', help='path to load model.')
 parser.add_argument('--model-prefix', default='output/dataset=MS1MV3_1000subj_classes=1000_backbone=resnet-v2-m-50_epoch-num=100_margin=0.5_scale=64.0_lr=0.01_wd=0.0005_momentum=0.9_20230518-004011/checkpoints/ckpt-m-100000', help='path to load model.')
 parser.add_argument('--image-path', default='/datasets1/bjgbiesseck/IJB-C/rec_data_ijbc/', type=str, help='')
-parser.add_argument('--result-dir', default='results_ijbc', type=str, help='')
+parser.add_argument('--result-dir', default='results_ijbc_template', type=str, help='')
 parser.add_argument('--batch-size', default=128, type=int, help='')
 parser.add_argument('--network', default='iresnet50', type=str, help='')
 parser.add_argument('--job', default='insightface', type=str, help='job name')
@@ -64,7 +64,7 @@ class Embedding(object):
         image_size = (112, 112)
         self.image_size = image_size
 
-        # original
+        # LOAD TRAINED MODEL (original)
         # weight = torch.load(prefix)
         # resnet = get_model(args.network, dropout=0, fp16=False).cuda()
         # resnet.load_state_dict(weight)
@@ -109,8 +109,8 @@ class Embedding(object):
         img_flip = np.fliplr(img)
         # img = np.transpose(img, (2, 0, 1))  # 3*112*112, RGB
         # img_flip = np.transpose(img_flip, (2, 0, 1))
-        # input_blob = np.zeros((2, 3, self.image_size[1], self.image_size[0]), dtype=np.uint8)
-        input_blob = np.zeros((2, self.image_size[1], self.image_size[0], 3), dtype=np.uint8)
+        # input_blob = np.zeros((2, 3, self.image_size[1], self.image_size[0]), dtype=np.uint8)  # (3,112,112)
+        input_blob = np.zeros((2, self.image_size[1], self.image_size[0], 3), dtype=np.uint8)    # (112,112,3)
         input_blob[0] = img
         input_blob[1] = img_flip
         return input_blob
@@ -184,7 +184,7 @@ def get_image_feature(img_path, files_list, model_path, epoch, gpu_id):
     batch = 0
     img_feats = np.empty((len(files), 1024), dtype=np.float32)
 
-    # Bernardo
+    # LOAD TRAINED MODEL (Bernardo)
     config = yaml.load(open(args.config_path))
     images = tf.placeholder(dtype=tf.float32, shape=[None, config['image_size'], config['image_size'], 3], name='input_image')
     train_phase_dropout = tf.placeholder(dtype=tf.bool, shape=None, name='train_phase')
@@ -212,19 +212,6 @@ def get_image_feature(img_path, files_list, model_path, epoch, gpu_id):
                         dtype=np.float32)
             lmk = lmk.reshape((5, 2))
             input_blob = embedding.get(img, lmk)
-
-            ''' # BERNARDO'S DEBUG TEST
-            debug_test_path = 'results_ijbc/debugging_imgs'
-            if not os.path.exists(debug_test_path):
-                os.mkdir(debug_test_path)
-            debug_img_name = debug_test_path + '/' + img_name.split('/')[-1].split('.')[0] + '.png'
-            print('Saving debug_img_name:', debug_img_name)
-            cv2.imwrite(debug_img_name, cv2.cvtColor(input_blob[0], cv2.COLOR_RGB2BGR))
-            # sys.exit(0)
-            if debug_img_name.endswith('128.png'):
-                sys.exit(0)
-            ''' # BERNARDO'S DEBUG TEST
-
             batch_data[2 * (img_index - batch * batch_size)][:] = input_blob[0]
             batch_data[2 * (img_index - batch * batch_size) + 1][:] = input_blob[1]
             if (img_index + 1) % batch_size == 0:
